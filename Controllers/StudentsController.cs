@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using tut3.Models;
 using tut3.DAL;
+using System.Data;
+using System.Data.SqlClient;
 
 namespace tut3.Controllers
 {
@@ -23,7 +25,30 @@ namespace tut3.Controllers
         [HttpGet]
         public IActionResult GetStudents(string orderBy)
         {
-            return Ok(_dbService.GetStudents());
+            var students = new List<Student>();
+            using (var con = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18963;Integrated Security=True"))
+            {
+                using(var com = new SqlCommand())
+                {
+                    com.Connection = con;
+                    com.CommandText = "select * from Student";
+
+                    con.Open();
+                    var dr = com.ExecuteReader();
+                    while(dr.Read())
+                    {
+                        var st = new Student();
+                        st.FirstName = dr["FirstName"].ToString();
+                        st.LastName = dr["LastName"].ToString();
+                        st.IndexNumber = dr["IndexNumber"].ToString();
+                        st.BirthDate = dr["BirthDate"].ToString();
+                        st.IdEnrollment = (int)(dr["IdEnrollment"]);
+                        students.Add(st);
+                    }
+                }
+            }
+            return Ok(students);
+
         }
 
         [HttpGet("{id}")]
