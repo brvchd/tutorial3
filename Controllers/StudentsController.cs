@@ -16,7 +16,7 @@ namespace tut3.Controllers
     public class StudentsController : ControllerBase
     {
         private readonly IDbService _dbService;
-
+        
         public StudentsController(IDbService dbService)
         {
             _dbService = dbService;
@@ -31,7 +31,7 @@ namespace tut3.Controllers
                 using(var com = new SqlCommand())
                 {
                     com.Connection = con;
-                    com.CommandText = "select * from Student";
+                    com.CommandText = "Select FirstName, LastName, BirthDate, Name, Semester From Enrollment, Student, Studies Where Enrollment.IdStudy = Studies.IdStudy AND Enrollment.IdEnrollment = Student.IdEnrollment; ";
 
                     con.Open();
                     var dr = com.ExecuteReader();
@@ -40,9 +40,14 @@ namespace tut3.Controllers
                         var st = new Student();
                         st.FirstName = dr["FirstName"].ToString();
                         st.LastName = dr["LastName"].ToString();
-                        st.IndexNumber = dr["IndexNumber"].ToString();
                         st.BirthDate = dr["BirthDate"].ToString();
-                        st.IdEnrollment = (int)(dr["IdEnrollment"]);
+                        st.enrollment = new Enrollment 
+                        { 
+                            IdSemester = (int)dr["Semester"], 
+                            study = new Studies { Name = dr["Name"].ToString()} 
+                        };
+                        
+
                         students.Add(st);
                     }
                 }
@@ -51,19 +56,30 @@ namespace tut3.Controllers
 
         }
 
-        [HttpGet("{id}")]
-        public IActionResult GetStudent(int id)
+      [HttpGet("{id}")]
+        public IActionResult GetStudent(string id)
         {
-            if (id == 1)
+            var enroll = new Enrollment();
+            using (var con = new SqlConnection("Data Source=db-mssql;Initial Catalog=s18963;Integrated Security=True"))
             {
-                return Ok("Kowalski");
-            } else if (id == 2)
-            {
-                return Ok("Malewski");
+                using (var com = new SqlCommand())
+                {
+                    com.Connection = con;
+                    com.CommandText = "select Semester from Student, Enrollment, Studies Where Student.IndexNumber=@id AND Enrollment.IdStudy = Studies.IdStudy AND Enrollment.IdEnrollment = Student.IdEnrollment";
+                    com.Parameters.AddWithValue("id", id);
+                    con.Open();
+                    var dr = com.ExecuteReader();
+                    while(dr.Read())
+                    {
+                        enroll.IdSemester = (int)dr["Semester"];
+                    }
+                   
+                }
             }
+            return Ok(enroll);
 
-            return NotFound("Student wasn't found");
         }
+        
 
         [HttpPost]
         public IActionResult CreateStudent(Student student)
